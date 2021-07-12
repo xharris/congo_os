@@ -1,3 +1,5 @@
+-- TABLE
+
 table.hasValue = function(t, value)
   for i, v in ipairs(t) do
     if v == value then return true end 
@@ -60,15 +62,66 @@ table.keySort = function(t, key, default)
   end)
 end
 
-callable = function(t)
-  if t.__ then
-      for _, mm in ipairs(t) do t['__'..mm] = t.__[mm] end
+table.update = function (old_t, new_t, keys)
+  if keys == nil then
+      for k, v in pairs(new_t) do
+          old_t[k] = v
+      end
+  else
+      for _,k in ipairs(keys) do if new_t[k] ~= nil then old_t[k] = new_t[k] end end
   end
-  return setmetatable(t, { __call = t.__call })
+  return old_t
 end
+
+table.defaults = function (t,defaults)
+  for k,v in pairs(defaults) do
+      if type(t) == 'table' and t[k] == nil then t[k] = v
+      elseif type(v) == 'table' then table.defaults(t[k],defaults[k]) end
+  end
+  return t
+end
+
+-- STRING 
+
+function string:starts(start)
+  return string.sub(self,1,string.len(start))==start
+ end
+ function string:contains(q)
+   return string.match(tostring(self), tostring(q)) ~= nil
+ end
+ function string:count(str)
+   local _, count = string.gsub(self, str, "")
+   return count
+ end
+ function string:capitalize()
+   return string.upper(string.sub(self,1,1))..string.sub(self,2)
+ end
+ function string:split(sep)
+   local sep, fields = sep or ":", {}
+   local pattern = string.format("([^%s]+)", sep)
+   self:gsub(pattern, function(c) fields[#fields+1] = c end)
+   return fields
+ end
+ function string:replace(find, replace, wholeword)
+   if wholeword then
+       find = '%f[%a]'..find..'%f[%A]'
+   end
+   return (self:gsub(find,replace))
+ end
+
+-- MATH 
 
 local sin, cos, rad, deg, abs, min, max = math.sin, math.cos, math.rad, math.deg, math.abs, math.min, math.max
 floor = function(x) return math.floor(x+0.5) end
+math.to2D = function(i, columns)
+  return math.floor((i - 1) % columns) + 1,
+         math.floor((i - 1) / columns) + 1
+end
+math.to1D = function(x, y, columns)
+  return x + y * columns
+end
+
+-- ETC
 
 memoize = nil
 do
@@ -149,3 +202,31 @@ monitor = class{
     end
   end
 }
+
+callable = function(t)
+  if t.__ then
+      for _, mm in ipairs(t) do t['__'..mm] = t.__[mm] end
+  end
+  return setmetatable(t, { __call = t.__call })
+end
+
+copy = function(orig, copies)
+  copies = copies or {}
+  local orig_type = type(orig)
+  local t_copy
+  if orig_type == 'table' then
+      if copies[orig] then
+          t_copy = copies[orig]
+      else
+          t_copy = {}
+          copies[orig] = t_copy
+          for orig_key, orig_value in next, orig, nil do
+              t_copy[copy(orig_key, copies)] = copy(orig_value, copies)
+          end
+          setmetatable(t_copy, copy(getmetatable(orig), copies))
+      end
+  else -- number, string, boolean, etc
+      t_copy = orig
+  end
+  return t_copy
+end

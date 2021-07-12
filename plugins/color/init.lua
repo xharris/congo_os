@@ -13,10 +13,14 @@ color = callable{
 
   __call = function(t, c, shade)
     if c == "gray" then c = "grey" end
+    assert(color.library[c], "Color '"..c.."' not found")
     if not shade then 
       local keys = table.keys(color.library[c])
       shade = keys[floor(#keys/2)]
+    else 
+      shade = tostring(shade)
     end
+    assert(color.library[c][shade], "Shade '"..shade.."' of color '"..c.."' not found")
     return hex2rgb(color.library[c][shade])
   end,
 

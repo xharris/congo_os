@@ -1,11 +1,19 @@
 -- engine 2021, MIT License
 -- engine for game dev
 
-local pkg = (...):match("(.-)[^%.]+$").."engine."
-class = require(pkg.."clasp")
-json = require(pkg.."json")
-require(pkg.."print_r")
-require(pkg.."util")
+function get_require(...)
+  local root = (...) -- :match("(.-)[^%.]+$")
+  return function(p)
+    return require(root..'.'..p)
+  end
+end
+
+local eng_require = get_require(...)
+class = eng_require("clasp")
+json = eng_require("json")
+moonshine = eng_require("moonshine")
+eng_require("print_r")
+eng_require("util")
 
 local engine = {}
 local systems = {}
@@ -14,13 +22,13 @@ local entities = {}
 engine.System = class{
   count = 0,
 
-  init = function(self, components)
+  init = function(self, ...)
     engine.System.count = engine.System.count + 1 
     self.id = engine.System.count
 
     self.callbacks = {}
     self.entities = {}
-    self.components = components or {}
+    self.components = {...}
     self.z = 0
     table.insert(systems, self)
 
@@ -132,9 +140,34 @@ engine.System = class{
   end
 }
 
+engine.Component = callable{
+  templates = {},
+
+  __call = function(t, name, value)
+    local templates = engine.Component.templates
+    if type(value) == "table" then 
+      templates[name] = value
+    end
+  end,
+
+  use = function(entity, name, value)
+    local templates = engine.Component.templates
+    entity[name] = value
+    if templates[name] then
+      if type(entity[name]) == "table" then 
+        table.defaults(entity[name], templates[name])
+      else 
+        entity[name] = copy(templates[name])
+      end
+    end
+  end
+}
+
 engine.Entity = class{
   count = 0,
   root = nil,
+  _check = {},
+  _need_to_check = false,
 
   init = function(self, components)
     engine.Entity.count = engine.Entity.count + 1 
@@ -145,10 +178,14 @@ engine.Entity = class{
     self._world = love.math.newTransform()
     self._sort_children = false 
     self.children = {}
-    self.transform = { x=0, y=0, ox=0, oy=0, r=0, sx=1, sy=1, kx=0, ky=0 }
     self.z = 0
-    for k, v in pairs(components or {}) do 
-      self[k] = v 
+
+    components = components or {}
+    if not components.transform then 
+      components.transform = {}
+    end
+    for k, v in pairs(components) do 
+      engine.Component.use(self, k, v)
     end
     engine.System._checkAll(self)
 
@@ -178,7 +215,7 @@ engine.Entity = class{
     end 
   end,
 
-  draw = function(self)
+  _draw = function(self)
     -- transformations
     if self.parent then 
       self:_updateTransform(self.parent._world)
@@ -200,6 +237,16 @@ engine.Entity = class{
       child:draw()
     end
     love.graphics.pop()
+  end,
+
+  draw = function(self)
+    if self.effect then 
+      self.effect(function()
+        self:_draw()
+      end)
+    else 
+      self:_draw()
+    end
   end,
 
   add = function(self, child)
@@ -230,15 +277,72 @@ engine.Entity = class{
     table.iterate(self._renderers, function(sys)
       return sys.id == system.id
     end)
-  end
+  end,
+
+  __ = {
+    newindex = function(t, k, v)
+      if k ~= 'id' and (t[k] == nil or v == nil) then 
+        engine.Entity._check[t.id] = t
+        engine.Entity._need_to_check = true
+      end
+      if k == 'effect' then 
+        if type(v) == "string" then 
+          v = {v}
+        end
+        v = engine.Effect(unpack(v))
+      end
+      rawset(t,k,v)
+    end
+  }
 }
 
 engine.Asset = function(category, file)
   return "assets/"..category.."/"..file
 end
 
+local function passthrough()
+  return moonshine.Effect{
+    name = 'Passthrough',
+    draw = function(buffer)
+      front, back = buffer()
+      love.graphics.setCanvas(front)
+      love.graphics.clear()
+      love.graphics.draw(back)
+    end
+  }
+end
+
+engine.Effect = callable{
+  __call = function(t, ...)
+    local effect = moonshine--(passthrough)
+    for n = 1, select('#', ...) do 
+      effect = effect.chain(moonshine.effects[select(n, ...)])
+    end
+    return effect
+  end,
+  
+  new = function(opts)
+    if opts.pixel or opts.code or opts.vertex then 
+      opts.shader = love.graphics.newShader(opts.pixel or opts.code, opts.vertex)
+    end
+    if not opts.setters and opts.defaults then 
+      opts.setters = {}
+      for k, v in pairs(opts.defaults) do 
+        opts.setters[k] = function(v)
+          opts.shader:send(k, v)
+        end
+      end
+    end 
+    moonshine.effects[opts.name] = moonshine.Effect(opts)
+  end
+}
+
+engine.Component("transform", { x=0, y=0, ox=0, oy=0, r=0, sx=1, sy=1, kx=0, ky=0 })
+
 love.load = function()
+  engine._canvas = love.graphics.newCanvas()
   engine.Entity.root = engine.Entity()
+  love.graphics.setDefaultFilter("nearest", "nearest", 1)
 
   if engine.load then 
     engine.load()
@@ -246,13 +350,27 @@ love.load = function()
 end
 
 love.update = function(dt)
+  -- check entities that may need to be moved around the systems
+  if engine.Entity._need_to_check then 
+    for id, ent in pairs(engine.Entity._check) do 
+      engine.System._checkAll(ent)
+    end
+    engine.Entity._check = {}
+    engine.Entity._need_to_check = false 
+  end
+  -- update all systems
   for _, sys in ipairs(systems) do 
     sys:_update(dt)
   end
 end
 
 love.draw = function()
-  engine.Entity.root:draw()
+  -- engine._canvas:renderTo(function()
+  --   love.graphics.clear()
+    engine.Entity.root:draw()
+  -- end)
+
+  love.graphics.draw(engine._canvas)
 end
 
 return engine

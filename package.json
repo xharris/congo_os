@@ -1,0 +1,17 @@
+{
+  "name": "love2deng",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/xharris/mechanic6-remake.git",
+  "author": "xharris <xhh950@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "./love-11.3-win64/lovec.exe .",
+    "transpile": "tstl"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "love-typescript-definitions": "^0.22.1",
+    "typescript-to-lua": "^0.41.0"
+  }
+}

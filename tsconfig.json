@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "rootDir": "ts",
+    "outDir": "game",
+    "types": [
+      "love-typescript-definitions"
+    ],
+    "baseUrl": ".",
+    // "paths": {
+    //   "engine": ["engine/engine"],
+    //   "plugins/*": ["plugins/*/index.d.ts"]
+    // }
+  },
+  "include": [
+    "ts/**/*",
+    "engine/**/*",
+    "plugins/**/*"
+  ],
+  "tstl": {
+    "luaLibImport": "require",
+    "luaTarget": "JIT",
+    "noImplicitSelf": true,
+    "sourceMapTraceback": true
+  }
+}
