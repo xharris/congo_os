@@ -317,38 +317,87 @@ local function passthrough()
   }
 end
 
-local views = {}
-engine.System("engine.view")
+engine.System("view", "size")
+  :add(function(ent)
+    local view = ent.view 
+    view._transform = love.math.newTransform()
+  end)
   :update(function(ent, dt)
-    local view = ent["engine.view"]
-    local t = ent.transform
+    local view, t, size = ent.view, ent.transform, ent.size
     if view.entity and view.entity.is_entity then 
       local ent_t = view.entity.transform 
       t.x = ent_t.x
       t.y = ent_t.y
     end
+
+    local ox, oy = size.w/2, size.h/2
+    view._transform:reset()
+    view._transform:setTransformation(
+      -floor(view.x), -floor(view.y), view.r,
+      view.sx, view.sy, view.ox or ox, view.oy or oy,
+      view.kx, view.ky
+    )
   end)
   :draw(function(ent)
-    engine.Entity.root:draw()
+    local view, t, size = ent.view, ent.transform, ent.size
+    engine.View._canvas:renderTo(function()
+      love.graphics.clear()
+
+      love.graphics.push()
+      love.graphics.origin()
+      love.graphics.setColor(1,1,1,1)
+      love.graphics.rectangle('line', 0, 0, size.w, size.h)
+      love.graphics.applyTransform(view._transform)
+
+      engine.Entity.root:draw()
+      love.graphics.pop()
+    end)
+    engine.View._quad:setViewport(
+      0, 0, size.w, size.h,
+      engine.Game.width,engine.Game.height
+    )
+    love.graphics.draw(engine.View._canvas, engine.View._quad)
   end)
 
 engine.View = callable{
   _root = nil,
+  _canvas = nil,
+  _quad = nil,
   views = {}, -- {name:{entity}}
   __call = function(t, name, opts)
     name = name or "default"
-    opts = opts or {}
-    local views = engine.View
+    if type(name) == "table" then 
+      opts = name 
+      name = "default"
+    end
+    local views = engine.View.views
     -- create a new view or update existing
     if not views[name] then 
-      views[name] = engine.Entity{ ["engine.view"]=opts }
+      opts = opts or {}
+      table.defaults(opts, {
+        view = {},
+        size = { w=engine.Game.width, h=engine.Game.height }
+      })
+      views[name] = engine.Entity(opts)
       engine.View._root:add(views[name])
-    else 
-      table.update(views[name]["engine.view"], opts)
+    elseif opts then 
+      table.update(views[name], opts)
     end
     return views[name]
   end,
   _load = function()
+    engine.View._canvas = love.graphics.newCanvas()
+    engine.View._quad = love.graphics.newQuad(
+      0,0,
+      engine.Game.width,engine.Game.height,
+      engine.Game.width,engine.Game.height
+    )
+    engine.Component("view", { 
+      entity=nil, 
+      x=0, y=0,
+      r=0, sx=1, sy=1, kx=0, ky=0
+    })
+    engine.Component("size", { w=0, h=0 })
     engine.View._root = engine.Entity()
     engine.Entity.root:remove(engine.View._root)
     engine.View("default")
@@ -356,17 +405,15 @@ engine.View = callable{
   draw = function()
     engine.View._root:draw()
   end,
-  setCenter = function(name, x, y)
-    if not y then 
-      y = x 
-      x = name 
-      name = nil
-    end
+  getWorld = function(name, x, y)
+    if not y then y, x, name = x, name, nil end 
     local v = engine.View(name)
-    v.transform.ox = x
-    v.transform.oy = y
-    v.transform.x  = x
-    v.transform.y  = y
+    return v.view._transform:inverseTransformPoint(v._local:inverseTransformPoint(x, y))
+  end,
+  getLocal = function(name, x, y)
+    if not y then y, x, name = x, name, nil end 
+    local v = engine.View(name)
+    return v.view._transform:transformPoint(v._local:transformPoint(x, y))
   end
 }
 
@@ -396,27 +443,45 @@ engine.Effect = callable{
 }
 
 engine.Game = callable{
+  width = 0,
+  height = 0,
+  background_color = {0,0,0,1},
+  backstage_color = {0,0,0,1},
+  padx = 0,
+  pady = 0,
+  scale = 1,
+
+  _load = function()
+    engine.Game.width = love.graphics.getWidth()
+    engine.Game.height = love.graphics.getHeight()
+  end,
   __ = {
     index = function(t, k)
-      if k == "width" then 
+      if k == "window_width" then 
         return love.graphics.getWidth()
-      end
-      if k == "height" then 
+      end 
+      if k == "window_height" then 
         return love.graphics.getHeight()
       end
       return rawget(t, k)
+    end,
+    newindex = function(t, k, v)
+      if k == "width" then 
+        return love.graphics.setWidth(v)
+      end
+      if k == "height" then 
+        return love.graphics.getHeight(v)
+      end
+      return rawset(t, k, v)
     end
   }
 }
 
 love.load = function()
+  engine.Game._load()
+
   engine.Component("transform", { x=0, y=0, ox=0, oy=0, r=0, sx=1, sy=1, kx=0, ky=0 })
-  engine.Component("engine.view", { 
-    entity=nil, 
-    r=0, sx=1, sy=1, kx=0, ky=0,
-    ox=engine.Game.width/2, oy=engine.Game.height/2,
-    w=engine.Game.width, h=engine.Game.height
-  })
+  engine.Component("size", { w=0, h=0 })
   
   engine._canvas = love.graphics.newCanvas()
   engine.Entity.root = engine.Entity()
@@ -444,7 +509,25 @@ love.update = function(dt)
 end
 
 love.draw = function()
-  engine.View.draw()
+  engine._canvas:renderTo(function()
+    love.graphics.clear(engine.Game.background_color)
+    engine.View.draw()
+  end)
+  local scale, x, y = 1, 0, 0
+  local scalex = engine.Game.window_height / engine.Game.height
+  local scaley = engine.Game.window_width / engine.Game.width
+  if scalex > scaley then
+    scale = scaley 
+    y = floor((engine.Game.window_height - (engine.Game.height*scaley))/2)
+  else 
+    scale = scalex
+    x = floor((engine.Game.window_width - (engine.Game.width*scalex))/2)
+  end
+  engine.Game.padx, engine.Game.pady, engine.Game.scale = x, y, scale 
+  love.graphics.translate(x, y)
+  love.graphics.scale(scale, scale)
+  love.graphics.clear(engine.Game.backstage_color)
+  love.graphics.draw(engine._canvas)
 end
 
 return engine

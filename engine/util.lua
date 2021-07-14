@@ -62,15 +62,12 @@ table.keySort = function(t, key, default)
   end)
 end
 
-table.update = function (old_t, new_t, keys)
-  if keys == nil then
-      for k, v in pairs(new_t) do
-          old_t[k] = v
-      end
-  else
-      for _,k in ipairs(keys) do if new_t[k] ~= nil then old_t[k] = new_t[k] end end
+table.update = function (t, new_t, keys)
+  for k,v in pairs(new_t) do
+    if type(v) == 'table' then table.update(t[k], new_t[k])
+    elseif type(t) == 'table' then t[k] = v end
   end
-  return old_t
+  return t
 end
 
 table.defaults = function (t,defaults)
@@ -206,7 +203,7 @@ monitor = class{
 callable = function(t)
   local mt = { __call = t.__call }
   if t.__ then
-      for mm, fn in pairs(t.__) do print(mm); mt['__'..mm] = t.__[mm] end
+      for mm, fn in pairs(t.__) do mt['__'..mm] = t.__[mm] end
   end
   return setmetatable(t, mt)
 end

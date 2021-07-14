@@ -7,7 +7,7 @@ image.newAnimation{name="person_walk", frames={2,3}, rows=1, cols=3, speed=10}
 
 Family = {
   spawn = function(opt)
-    engine.Entity{
+    return engine.Entity{
       image = {name = opt.name..".png", animation = "person_stand"}
     }
   end
