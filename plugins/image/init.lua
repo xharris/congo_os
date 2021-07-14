@@ -1,3 +1,5 @@
+local image = {}
+
 local get_image = memoize(function(path)
   return love.graphics.newImage(
     engine.Asset("image", path)
@@ -40,12 +42,11 @@ local update_entity = function(ent)
   end
 end
 
-local image = {
-  animations = {},
-  newAnimation = function(opts)
-    image.animations[opts.name] = opts
-  end
-}
+image.animations = {}
+
+image.newAnimation = function(opts)
+  image.animations[opts.name] = opts
+end
 
 engine.Component("image", { speed=1, frame=1, frames=1, _t=0 })
 

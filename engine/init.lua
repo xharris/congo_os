@@ -174,6 +174,7 @@ engine.Entity = class{
     self.id = engine.Entity.count
 
     self._renderers = {}
+    self.is_entity = true
     self._local = love.math.newTransform()
     self._world = love.math.newTransform()
     self._sort_children = false 
@@ -224,7 +225,7 @@ engine.Entity = class{
     end 
     -- render in systems 
     love.graphics.push()
-    love.graphics.replaceTransform(self._world)
+    love.graphics.applyTransform(self._local)
     for _, sys in ipairs(self._renderers) do 
       sys:_draw(self)
     end
@@ -249,7 +250,7 @@ engine.Entity = class{
     end
   end,
 
-  add = function(self, child)
+  add = function(self, child, skipParenting)
     if self.id == child.id then return end 
     if child.parent and child.parent.id == self.id then return end
     if child.parent then 
@@ -291,6 +292,9 @@ engine.Entity = class{
         end
         v = engine.Effect(unpack(v))
       end
+      if k == 'z' and t.parent and t.z ~= v then 
+        t.parent._sort_children = true
+      end
       rawset(t,k,v)
     end
   }
@@ -300,6 +304,7 @@ engine.Asset = function(category, file)
   return "assets/"..category.."/"..file
 end
 
+-- not necessary?
 local function passthrough()
   return moonshine.Effect{
     name = 'Passthrough',
@@ -312,9 +317,62 @@ local function passthrough()
   }
 end
 
+local views = {}
+engine.System("engine.view")
+  :update(function(ent, dt)
+    local view = ent["engine.view"]
+    local t = ent.transform
+    if view.entity and view.entity.is_entity then 
+      local ent_t = view.entity.transform 
+      t.x = ent_t.x
+      t.y = ent_t.y
+    end
+  end)
+  :draw(function(ent)
+    engine.Entity.root:draw()
+  end)
+
+engine.View = callable{
+  _root = nil,
+  views = {}, -- {name:{entity}}
+  __call = function(t, name, opts)
+    name = name or "default"
+    opts = opts or {}
+    local views = engine.View
+    -- create a new view or update existing
+    if not views[name] then 
+      views[name] = engine.Entity{ ["engine.view"]=opts }
+      engine.View._root:add(views[name])
+    else 
+      table.update(views[name]["engine.view"], opts)
+    end
+    return views[name]
+  end,
+  _load = function()
+    engine.View._root = engine.Entity()
+    engine.Entity.root:remove(engine.View._root)
+    engine.View("default")
+  end,
+  draw = function()
+    engine.View._root:draw()
+  end,
+  setCenter = function(name, x, y)
+    if not y then 
+      y = x 
+      x = name 
+      name = nil
+    end
+    local v = engine.View(name)
+    v.transform.ox = x
+    v.transform.oy = y
+    v.transform.x  = x
+    v.transform.y  = y
+  end
+}
+
 engine.Effect = callable{
   __call = function(t, ...)
-    local effect = moonshine--(passthrough)
+    local effect = moonshine
     for n = 1, select('#', ...) do 
       effect = effect.chain(moonshine.effects[select(n, ...)])
     end
@@ -337,11 +395,32 @@ engine.Effect = callable{
   end
 }
 
-engine.Component("transform", { x=0, y=0, ox=0, oy=0, r=0, sx=1, sy=1, kx=0, ky=0 })
+engine.Game = callable{
+  __ = {
+    index = function(t, k)
+      if k == "width" then 
+        return love.graphics.getWidth()
+      end
+      if k == "height" then 
+        return love.graphics.getHeight()
+      end
+      return rawget(t, k)
+    end
+  }
+}
 
 love.load = function()
+  engine.Component("transform", { x=0, y=0, ox=0, oy=0, r=0, sx=1, sy=1, kx=0, ky=0 })
+  engine.Component("engine.view", { 
+    entity=nil, 
+    r=0, sx=1, sy=1, kx=0, ky=0,
+    ox=engine.Game.width/2, oy=engine.Game.height/2,
+    w=engine.Game.width, h=engine.Game.height
+  })
+  
   engine._canvas = love.graphics.newCanvas()
   engine.Entity.root = engine.Entity()
+  engine.View._load()
   love.graphics.setDefaultFilter("nearest", "nearest", 1)
 
   if engine.load then 
@@ -365,12 +444,7 @@ love.update = function(dt)
 end
 
 love.draw = function()
-  -- engine._canvas:renderTo(function()
-  --   love.graphics.clear()
-    engine.Entity.root:draw()
-  -- end)
-
-  love.graphics.draw(engine._canvas)
+  engine.View.draw()
 end
 
 return engine

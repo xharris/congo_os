@@ -1,4 +1,3 @@
-image = require "plugins.image"
 color = require "plugins.color"
 require "plugins.effects"
 
@@ -6,24 +5,17 @@ solarsystem = require "solarsystem"
 
 engine.load = function()
   solarsystem.load()
+  local Family = require "family"
 
-  image.newAnimation{name="person_stand", frames={1}, rows=1, cols=3}
-  image.newAnimation{name="person_walk", frames={2,3}, rows=1, cols=3, speed=10}
-
-  local bob = engine.Entity{ 
-    image={name="son.png", animation="person_walk"}, 
-    morph=true,
-    -- transform = { x=love.graphics.getWidth()/2, y=love.graphics.getHeight()/2 }
-  }
+  Family.spawn{name = "son"}
 
   love.graphics.setBackgroundColor(color("gray", 900))
-end
 
-engine.System("image", "morph")
-  :update(function(ent, dt)
-    if love.mouse.getX() > love.graphics.getWidth()/2 then 
-      ent.image.name = "father.png"
-    else 
-      ent.image.name = "son.png"
-    end
-  end)
+  engine.View.setCenter(engine.Game.width/2, engine.Game.height/2)
+
+  local v = engine.View()
+  v.transform.sx = 0.5 
+  v.transform.sy = 0.5
+
+  v.rotate = -0.005
+end

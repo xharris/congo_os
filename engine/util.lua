@@ -204,10 +204,11 @@ monitor = class{
 }
 
 callable = function(t)
+  local mt = { __call = t.__call }
   if t.__ then
-      for _, mm in ipairs(t) do t['__'..mm] = t.__[mm] end
+      for mm, fn in pairs(t.__) do print(mm); mt['__'..mm] = t.__[mm] end
   end
-  return setmetatable(t, { __call = t.__call })
+  return setmetatable(t, mt)
 end
 
 copy = function(orig, copies)
