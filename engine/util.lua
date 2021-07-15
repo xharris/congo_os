@@ -62,9 +62,10 @@ table.keySort = function(t, key, default)
   end)
 end
 
-table.update = function (t, new_t, keys)
+table.update = function (t, new_t, depth)
+  depth = depth or 1
   for k,v in pairs(new_t) do
-    if type(v) == 'table' then table.update(t[k], new_t[k])
+    if type(v) == 'table' and depth > 0 then table.update(t[k], new_t[k], depth - 1)
     elseif type(t) == 'table' then t[k] = v end
   end
   return t

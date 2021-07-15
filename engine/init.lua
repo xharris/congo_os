@@ -202,7 +202,7 @@ engine.Entity = class{
     self._local:reset()
       :setTransformation(
         floor(t.x), floor(t.y), t.r, 
-        t.sx, t.sy, t.ox, t.oy,
+        t.sx, t.sy, floor(t.ox), floor(t.oy),
         t.kx, t.ky
       )
     -- update world
@@ -295,6 +295,10 @@ engine.Entity = class{
       if k == 'z' and t.parent and t.z ~= v then 
         t.parent._sort_children = true
       end
+      if v == nil then 
+        print('check', t, k)
+        engine.System._checkAll(t)
+      end 
       rawset(t,k,v)
     end
   }
@@ -325,18 +329,19 @@ engine.System("view", "size")
   :update(function(ent, dt)
     local view, t, size = ent.view, ent.transform, ent.size
     if view.entity and view.entity.is_entity then 
-      local ent_t = view.entity.transform 
-      t.x = ent_t.x
-      t.y = ent_t.y
+      view.x, view.y = view.entity._world:transformPoint(0,0)
     end
 
-    local ox, oy = size.w/2, size.h/2
+    local ox, oy = size.w, size.h
+    if view.ox then ox = view.ox end 
+    if view.oy then oy = view.oy end 
+    local tform = view._transform
     view._transform:reset()
-    view._transform:setTransformation(
-      -floor(view.x), -floor(view.y), view.r,
-      view.sx, view.sy, view.ox or ox, view.oy or oy,
-      view.kx, view.ky
-    )
+    local w2, h2 = size.w*0.5, size.h*0.5
+    tform:scale(view.sx, view.sy)
+    tform:translate(w2 / view.sx, h2 / view.sy)
+    tform:rotate(-view.r)
+    tform:translate(-view.x, -view.y)
   end)
   :draw(function(ent)
     local view, t, size = ent.view, ent.transform, ent.size
@@ -408,12 +413,18 @@ engine.View = callable{
   getWorld = function(name, x, y)
     if not y then y, x, name = x, name, nil end 
     local v = engine.View(name)
-    return v.view._transform:inverseTransformPoint(v._local:inverseTransformPoint(x, y))
+    if v.view then  
+      return v.view._transform:inverseTransformPoint(v._local:inverseTransformPoint(x, y))
+    end
+    return x, y
   end,
   getLocal = function(name, x, y)
     if not y then y, x, name = x, name, nil end 
     local v = engine.View(name)
-    return v.view._transform:transformPoint(v._local:transformPoint(x, y))
+    if v.view then  
+      return v.view._transform:transformPoint(v._local:transformPoint(x, y))
+    end
+    return x, y
   end
 }
 
