@@ -33,14 +33,15 @@ engine.load = function()
     },
     size = { w=100, h=100 }
   })
+  print(engine.View())
 end
 
 engine.System("rotate", "view")
   :update(function(ent, dt)
     if ent.view.r > math.rad(20) then 
-      -- print('do it')
-      -- ent.view = nil
-      -- print('done it')
+      print('do it',ent.view)
+      ent.view = nil
+      print('done it')
     end
   end)
 
