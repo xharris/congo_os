@@ -32,6 +32,12 @@ engine.System = class{
     self.z = 0
     table.insert(systems, self)
 
+    for _, comp in ipairs(self.components) do 
+      if not engine.Component.exists(comp) then 
+        engine.Component(comp)
+      end
+    end
+
     for _, ent in ipairs(entities) do 
       self:_check(ent)
     end
@@ -141,24 +147,52 @@ engine.System = class{
 }
 
 engine.Component = callable{
+  names = {}, -- {name:t/f} used to check if a component exists
   templates = {},
 
   __call = function(t, name, value)
     local templates = engine.Component.templates
+    if value == nil then 
+      -- make up a default value
+      local _type = type(value)
+      if _type == "number" then value = 0 end 
+      if _type == "string" then value = "" end 
+      if _type == "table" then value = {} end 
+      if _type == "boolean" then value = true end 
+    end
     if type(value) == "table" then 
       templates[name] = value
     end
   end,
 
+  exists = function(name) 
+    return engine.Component.templates[name] ~= nil 
+  end,
+
   use = function(entity, name, value)
     local templates = engine.Component.templates
-    entity[name] = value
-    if templates[name] then
-      if type(entity[name]) == "table" then 
-        table.defaults(entity[name], templates[name])
-      else 
+    -- assign if it does not exist on entity 
+    if entity[name] == nil then
+      if value == nil and templates[name] then 
         entity[name] = copy(templates[name])
+      else 
+        entity[name] = value
       end
+    end
+    
+    -- update with given value
+    if value ~= nil then 
+      if type(value) == 'table' then 
+        table.update(entity[name], value, -1)
+      else 
+        entity[name] = value
+      end
+    end
+
+    -- update with template value
+    if templates[name] and type(entity[name]) == "table" then 
+      table.defaults(entity[name], templates[name])
+      
     end
   end
 }
@@ -250,23 +284,67 @@ engine.Entity = class{
     end
   end,
 
-  add = function(self, child, skipParenting)
-    if self.id == child.id then return end 
-    if child.parent and child.parent.id == self.id then return end
-    if child.parent then 
-      child.parent:remove(child)
+  add = function(self, ...)
+    local _type = type(select(1, ...))
+
+    if _type == "string" then 
+      -- component 
+      engine.Component.use(self, ...)
+      engine.System._checkAll(self)
+
+    elseif _type == "table" then
+      local obj = select(1, ...)
+      
+      if not obj.is_entity then
+        -- list of components
+        for k, v in pairs(obj) do 
+          engine.Component.use(self, k, v)
+        end
+        engine.System._checkAll(self)
+
+      else
+        -- entity 
+        local child
+        for c = 1, select('#', ...) do 
+          child = select(c, ...)
+
+          if self.id == child.id then return end 
+          if child.parent and child.parent.id == self.id then return end
+          if child.parent then 
+            child.parent:remove(child)
+          end
+          child.parent = self
+          table.insert(self.children, child)
+        end
+      end
     end
-    child.parent = self
-    table.insert(self.children, child)
   end,
 
-  remove = function(self, child)
-    if self.id == child.id then return end 
+  remove = function(self, ...)
+    local _type = type(select(1, ...))
+    if _type == "string" then 
+      --component 
+      for c = 1, select('#', ...) do 
+        self[select(c, ...)] = nil 
+      end
+      engine.System._checkAll(self)
 
-    child.parent = nil
-    table.iterate(self.children, function(c)
-      return c.id == child.id
-    end)
+    else
+      -- entity
+      local child = select(1, ...)
+      if self.id == child.id then return end 
+
+      child.parent = nil
+      table.iterate(self.children, function(c)
+        return c.id == child.id
+      end)
+    end
+  end,
+
+  merge = function(self, obj)
+    for k, v in pairs(obj) do 
+
+    end
   end,
 
   _addRenderSystem = function(self, system)
@@ -295,11 +373,23 @@ engine.Entity = class{
       if k == 'z' and t.parent and t.z ~= v then 
         t.parent._sort_children = true
       end
-      if v == nil then 
-        print('check', t, k)
-        engine.System._checkAll(t)
-      end 
       rawset(t,k,v)
+    end,
+
+    tostring = function(t)
+      local str = "Entity{id="..t.id
+      if t.parent and engine.Entity.root and t.parent.id ~= engine.Entity.root.id then 
+        str = str .. ", parent=" .. t.parent.id 
+      end
+      if t.children and #t.children > 0 then 
+        str = str .. ", #children=" .. #t.children
+      end
+      for k, v in pairs(t) do 
+        if engine.Component.exists(k) then 
+          str = str .. ", " .. k .. "=" .. tostring(v)
+        end 
+      end
+      return str.."}"
     end
   }
 }
@@ -308,23 +398,17 @@ engine.Asset = function(category, file)
   return "assets/"..category.."/"..file
 end
 
--- not necessary?
-local function passthrough()
-  return moonshine.Effect{
-    name = 'Passthrough',
-    draw = function(buffer)
-      front, back = buffer()
-      love.graphics.setCanvas(front)
-      love.graphics.clear()
-      love.graphics.draw(back)
-    end
-  }
-end
-
 engine.System("view", "size")
   :add(function(ent)
     local view = ent.view 
     view._transform = love.math.newTransform()
+  end)
+  :remove(function(ent)
+    for name, view in pairs(engine.View.views) do 
+      if view.id == ent.id then 
+        engine.View.views[name] = nil
+      end
+    end
   end)
   :update(function(ent, dt)
     local view, t, size = ent.view, ent.transform, ent.size
@@ -346,12 +430,10 @@ engine.System("view", "size")
   :draw(function(ent)
     local view, t, size = ent.view, ent.transform, ent.size
     engine.View._canvas:renderTo(function()
-      love.graphics.clear()
+      love.graphics.clear(view.clear or engine.Game.background_color)
 
       love.graphics.push()
       love.graphics.origin()
-      love.graphics.setColor(1,1,1,1)
-      love.graphics.rectangle('line', 0, 0, size.w, size.h)
       love.graphics.applyTransform(view._transform)
 
       engine.Entity.root:draw()
@@ -368,7 +450,7 @@ engine.View = callable{
   _root = nil,
   _canvas = nil,
   _quad = nil,
-  views = {}, -- {name:{entity}}
+  views = {}, -- {name:entity}
   __call = function(t, name, opts)
     name = name or "default"
     if type(name) == "table" then 
@@ -380,13 +462,13 @@ engine.View = callable{
     if not views[name] then 
       opts = opts or {}
       table.defaults(opts, {
-        view = {},
+        view = { x=engine.Game.width/2, y=engine.Game.height/2 },
         size = { w=engine.Game.width, h=engine.Game.height }
       })
       views[name] = engine.Entity(opts)
       engine.View._root:add(views[name])
     elseif opts then 
-      table.update(views[name], opts)
+      views[name]:add(opts)
     end
     return views[name]
   end,
@@ -412,16 +494,16 @@ engine.View = callable{
   end,
   getWorld = function(name, x, y)
     if not y then y, x, name = x, name, nil end 
-    local v = engine.View(name)
-    if v.view then  
+    local v = engine.View.views[name or 'default']
+    if v and v.view then  
       return v.view._transform:inverseTransformPoint(v._local:inverseTransformPoint(x, y))
     end
     return x, y
   end,
   getLocal = function(name, x, y)
     if not y then y, x, name = x, name, nil end 
-    local v = engine.View(name)
-    if v.view then  
+    local v = engine.View.views[name or 'default']
+    if v and v.view then  
       return v.view._transform:transformPoint(v._local:transformPoint(x, y))
     end
     return x, y

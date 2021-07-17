@@ -15,6 +15,14 @@ table.keys = function(t)
   return keys 
 end
 
+table.values = function(t)
+  local values = {}
+  for k,v in pairs(t) do
+    table.insert(values, v)
+  end
+  return values 
+end
+
 table.iterate = function(t, fn)
   local len = #t
   local offset = 0
@@ -62,13 +70,19 @@ table.keySort = function(t, key, default)
   end)
 end
 
-table.update = function (t, new_t, depth)
-  depth = depth or 1
+table.update = function (t, new_t, depth, hits)
+  hits = hits or {}
+  depth = depth or -1
   for k,v in pairs(new_t) do
-    if type(v) == 'table' and depth > 0 then table.update(t[k], new_t[k], depth - 1)
-    elseif type(t) == 'table' then t[k] = v end
+    if type(t[k]) ~= 'table' or type(v) ~= 'table' or depth == 0 or (type(v) == 'table' and hits[v]) then 
+      t[k] = v    
+    else
+      if type(v) == 'table' then 
+        hits[v] = true 
+      end
+      table.update(t[k], v, depth - 1, hits)
+    end
   end
-  return t
 end
 
 table.defaults = function (t,defaults)

@@ -6,7 +6,7 @@
   "author": "xharris <xhh950@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "./love-11.3-win64/lovec.exe .",
+    "start": "~/Applications/love-11.3-x86_64_81e02cf388ab9976a326234d2a124bff.AppImage .",
     "transpile": "tstl"
   },
   "dependencies": {},
