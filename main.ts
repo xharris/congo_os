@@ -1,6 +1,6 @@
 import engine, { System } from "engine"
 import { newAnimation } from "plugins/image"
-import "plugins/effects"
+// import "./plugins/effects"
 
 // import solarsystem from require("solarsystem")
 
@@ -12,7 +12,7 @@ engine.load = () => {
 }
 
 System("image", "morph")
-    .update((ent, dt) => {
+    .update((ent) => {
         if (love.mouse.getX() > love.graphics.getWidth() / 2)
             ent.image.name = "father.png"
         else 

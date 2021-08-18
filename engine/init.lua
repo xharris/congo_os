@@ -1,5 +1,32 @@
--- engine 2021, MIT License
--- engine for game dev
+local engine = {
+  _VERSION        = 'engine v0.8.0',
+  _URL            = 'https://github.com/xharris/mechanic6-remake',
+  _DESCRIPTION    = 'An engine I\'ll probably use in my games',
+  _LICENSE        = [[
+    MIT LICENSE
+
+    Copyright (c) 2021 Xavier Harris
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  ]]
+}
 
 function get_require(...)
   local root = (...) -- :match("(.-)[^%.]+$")
@@ -15,7 +42,6 @@ moonshine = eng_require("moonshine")
 eng_require("print_r")
 eng_require("util")
 
-local engine = {}
 local systems = {}
 local entities = {}
 
@@ -123,6 +149,7 @@ engine.System = class{
   _check = function(self, entity)
     local belongs = self:_compatible(entity) 
     local here = self:_has(entity)
+    
     -- add it 
     if belongs and not here then 
       table.insert(self.entities, entity)
@@ -151,18 +178,7 @@ engine.Component = callable{
   templates = {},
 
   __call = function(t, name, value)
-    local templates = engine.Component.templates
-    if value == nil then 
-      -- make up a default value
-      local _type = type(value)
-      if _type == "number" then value = 0 end 
-      if _type == "string" then value = "" end 
-      if _type == "table" then value = {} end 
-      if _type == "boolean" then value = true end 
-    end
-    if type(value) == "table" then 
-      templates[name] = value
-    end
+    engine.Component.templates[name] = value ~= nil and value or {} 
   end,
 
   exists = function(name) 
@@ -213,6 +229,7 @@ engine.Entity = class{
     self._world = love.math.newTransform()
     self._sort_children = false 
     self.children = {}
+    self.visible = true
     self.z = 0
 
     components = components or {}
@@ -260,6 +277,10 @@ engine.Entity = class{
     -- render in systems 
     love.graphics.push()
     love.graphics.applyTransform(self._local)
+    -- color 
+    if self.color then 
+      love.graphics.setColor(self.color)
+    end
     for _, sys in ipairs(self._renderers) do 
       sys:_draw(self)
     end
@@ -275,6 +296,7 @@ engine.Entity = class{
   end,
 
   draw = function(self)
+    if not self.visible then return end 
     if self.effect then 
       self.effect(function()
         self:_draw()
@@ -341,6 +363,24 @@ engine.Entity = class{
     end
   end,
 
+  detach = function(self)
+    if self.parent then 
+      self.parent:remove(self)
+    end
+  end,
+
+  destroy = function(self)
+    -- remove from parent 
+    self:detach()
+    -- remove components 
+    for k, v in pairs(self) do 
+      if engine.Component.exists(k) then
+        self[k] = nil 
+      end
+    end
+    engine.System._checkAll(self)
+  end,
+
   merge = function(self, obj)
     for k, v in pairs(obj) do 
 
@@ -363,16 +403,20 @@ engine.Entity = class{
       if k ~= 'id' and (t[k] == nil or v == nil) then 
         engine.Entity._check[t.id] = t
         engine.Entity._need_to_check = true
-      end
-      if k == 'effect' then 
+
+      elseif k == 'effect' then 
         if type(v) == "string" then 
           v = {v}
         end
         v = engine.Effect(unpack(v))
-      end
-      if k == 'z' and t.parent and t.z ~= v then 
+      
+      elseif k == 'z' and t.parent and t.z ~= v then 
         t.parent._sort_children = true
-      end
+      
+      elseif engine.Component.exists(k) then 
+        engine.Component.use(t, k, v)
+
+      end 
       rawset(t,k,v)
     end,
 
@@ -394,9 +438,19 @@ engine.Entity = class{
   }
 }
 
-engine.Asset = function(category, file)
-  return "assets/"..category.."/"..file
-end
+engine.Asset = callable {
+  __call = function(t, category, file)
+    return "assets/"..category.."/"..file
+  end,
+
+  image = memoize(function(image)
+    return love.graphics.newImage(engine.Asset("image", image))
+  end),
+
+  quad = memoize(function(image, x, y, w, h)
+    return love.graphics.newQuad(x, y, w, h, engine.Asset.image(image))
+  end)
+}
 
 engine.System("view", "size")
   :add(function(ent)
@@ -430,7 +484,7 @@ engine.System("view", "size")
   :draw(function(ent)
     local view, t, size = ent.view, ent.transform, ent.size
     engine.View._canvas:renderTo(function()
-      love.graphics.clear(view.clear or engine.Game.background_color)
+      engine.Game.clear()
 
       love.graphics.push()
       love.graphics.origin()
@@ -479,12 +533,6 @@ engine.View = callable{
       engine.Game.width,engine.Game.height,
       engine.Game.width,engine.Game.height
     )
-    engine.Component("view", { 
-      entity=nil, 
-      x=0, y=0,
-      r=0, sx=1, sy=1, kx=0, ky=0
-    })
-    engine.Component("size", { w=0, h=0 })
     engine.View._root = engine.Entity()
     engine.Entity.root:remove(engine.View._root)
     engine.View("default")
@@ -500,6 +548,7 @@ engine.View = callable{
     end
     return x, y
   end,
+  -- TODO does this actually work?
   getLocal = function(name, x, y)
     if not y then y, x, name = x, name, nil end 
     local v = engine.View.views[name or 'default']
@@ -535,6 +584,40 @@ engine.Effect = callable{
   end
 }
 
+engine.Signal = {
+  _functions = {},
+
+  on = function(name, fn)
+    local t = engine.Signal
+    if not t._functions[name] then 
+      t._functions[name] = {}
+    end
+    if not table.hasValue(t._functions[name], fn) then 
+      table.insert(t._functions[name], fn)
+    end
+  end,
+
+  off = function(name, fn)
+    table.iterate(engine.Signal._functions, function(fn2)
+      return fn == fn2
+    end)
+  end,
+
+  emit = function(name, ...)
+    if not engine.Signal._functions[name] then return end
+    local t = engine.Signal._functions[name]
+    for i = 1, #t do 
+      t[i](...)
+    end
+  end
+}
+
+engine.Plugin = function(name)
+  return eng_require("plugins."..name)
+end
+
+engine.Log = eng_require "log"
+
 engine.Game = callable{
   width = 0,
   height = 0,
@@ -547,7 +630,21 @@ engine.Game = callable{
   _load = function()
     engine.Game.width = love.graphics.getWidth()
     engine.Game.height = love.graphics.getHeight()
+
+    engine.Component("view", { 
+      entity=nil, 
+      x=0, y=0,
+      r=0, sx=1, sy=1, kx=0, ky=0
+    })
+    engine.Component("transform", { x=0, y=0, ox=0, oy=0, r=0, sx=1, sy=1, kx=0, ky=0 })
+    engine.Component("size", { w=0, h=0 })
+    
+    engine.Entity.root = engine.Entity()
+    engine._canvas = love.graphics.newCanvas()
+    engine.View._load()
+    love.graphics.setDefaultFilter("nearest", "nearest", 1)
   end,
+
   __ = {
     index = function(t, k)
       if k == "window_width" then 
@@ -567,22 +664,23 @@ engine.Game = callable{
       end
       return rawset(t, k, v)
     end
-  }
+  },
+
+  clear = function(r, g, b, a)
+    if r then 
+      love.graphics.clear(r, g, b, a)
+    else
+      love.graphics.clear(engine.Game.background_color)
+    end
+  end 
 }
 
 love.load = function()
   engine.Game._load()
 
-  engine.Component("transform", { x=0, y=0, ox=0, oy=0, r=0, sx=1, sy=1, kx=0, ky=0 })
-  engine.Component("size", { w=0, h=0 })
-  
-  engine._canvas = love.graphics.newCanvas()
-  engine.Entity.root = engine.Entity()
-  engine.View._load()
-  love.graphics.setDefaultFilter("nearest", "nearest", 1)
-
   if engine.load then 
     engine.load()
+    engine.Signal.emit("load")
   end
 end
 
@@ -621,6 +719,17 @@ love.draw = function()
   love.graphics.scale(scale, scale)
   love.graphics.clear(engine.Game.backstage_color)
   love.graphics.draw(engine._canvas)
+end
+
+local love_events = {
+  "displayrotated",
+  "directorydropped", "filedropped", "mousefocus", "resize", "visible",
+  "mousepressed", "mousereleased", "wheelmoved",
+  "gamepadaxis", "gamepadpressed", "gamepadreleased", "joystickadded", "joystickaxis", "joystickhat", "joystickpressed", "joystickreleased", "joystickremoved",
+  "touchmoved", "touchpressed", "touchreleased"
+}
+for _, evt in ipairs(love_events) do 
+  love[evt] = function(...) engine.Signal.emit(evt, ...) end
 end
 
 return engine

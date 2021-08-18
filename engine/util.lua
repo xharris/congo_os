@@ -132,6 +132,10 @@ end
 math.to1D = function(x, y, columns)
   return x + y * columns
 end
+math.move = function(x, y, angle, distance) -- TODO: try swapping cos and sin
+  return x + cos(angle) * distance,
+         y + sin(angle) * distance
+end
 
 -- ETC
 
@@ -243,3 +247,4 @@ copy = function(orig, copies)
   end
   return t_copy
 end
+

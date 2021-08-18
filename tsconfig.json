@@ -1,23 +1,18 @@
 {
   "compilerOptions": {
+    "target": "esnext",
     "lib": ["esnext"],
-    "rootDir": "ts",
+    "moduleResolution": "node",
     "outDir": "game",
-    "types": [
-      "love-typescript-definitions"
-    ],
     "baseUrl": ".",
-    // "paths": {
-    //   "engine": ["engine/engine"],
-    //   "plugins/*": ["plugins/*/index.d.ts"]
-    // }
+    "types": [
+      "love-typescript-definitions",
+      "typescript-to-lua/language-extensions",
+      "lua-types/5.1"
+    ]
   },
-  "include": [
-    "ts/**/*",
-    "engine/**/*",
-    "plugins/**/*"
-  ],
   "tstl": {
+    "noHeader": true,
     "luaLibImport": "require",
     "luaTarget": "JIT",
     "noImplicitSelf": true,
