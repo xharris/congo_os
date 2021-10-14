@@ -5,9 +5,11 @@ Tiled stores tilemaps in chunks and in a 1d array.
 I had to convert a 1d array to a 2d array and combine all the chunks.
 
 ![loading from tiled](1-loading_from_tiled.png)
+
 Turns out I needed to subtract one from the x and y values that determine the cell position of the tile and the frame of the texture used.
 
 ![working tiled loader](2-working_tiled_loader.png)
+
 Tiled map loading works :). Those red X's are supposed to be the origin of the entity. Might need to check if the position is accurate later.
 
 # Pathing
@@ -23,12 +25,15 @@ For this version, I decided to explore navigation meshes. I found this [article]
 5. Move the person.
 
 ![walking path](3-walking_path.png)
+
 Loading a polygon from Tiled.
 
 ![triangulation](4-triangulation.png)
+
 Triangulating that polygon. Original was going to use an archaic Delaunay library, but it turns out Love2D now has a triangulate() method!
 
 ![a longer path](5-a_longer_path.png)
+
 Making a longer test path so I can really test the upcoming pathfinding.
 
 # Conclusion
