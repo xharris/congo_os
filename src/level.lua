@@ -27,20 +27,21 @@ M.load = function(name)
         local cx, cy = object.x + (object.width / 2), object.y + (object.height / 2)
 
         if layer.name == "appliance" then 
-          local ent = Appliance.new{
+          table.insert(level.appliance, Appliance.new{
             name=object.name, 
             x = cx, 
             y = cy
-          }
+          })
         
         elseif layer.name == "person" then 
-          local ent = Person.new{
+          table.insert(level.person, Person.new{
             name = object.name,
             x = cx, y = cy
-          }
+          })
         
         elseif layer.name == "path" then 
           local points = {}
+          assert(object.polygon, "path object is not a polygon")
           for p, pt in ipairs(object.polygon) do 
             table.insert(points, { x=object.x + pt.x, y=object.y + pt.y })
           end
@@ -51,6 +52,8 @@ M.load = function(name)
       end
     end
   end
+
+  return level
 end
 
 return M 

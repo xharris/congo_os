@@ -3,11 +3,11 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "assets/map/tutorial.json",
+    "activeFile": "assets/map/tutorial.tmx",
     "expandedProjectPaths": [
         "assets",
-        "assets/map",
-        "."
+        ".",
+        "assets/map"
     ],
     "fileStates": {
         "": {
@@ -31,11 +31,11 @@
             "scaleInEditor": 1
         },
         "assets/map/tutorial.tmx": {
-            "scale": 1,
-            "selectedLayer": 3,
+            "scale": 1.5,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 131.5,
-                "y": 182
+                "x": 149.66666666666666,
+                "y": 96.66666666666664
             }
         },
         "assets/map/tutorial.tmx#house_inside": {
@@ -60,7 +60,7 @@
     "map.lastUsedExportFilter": "Lua files (*.lua)",
     "map.lastUsedFormat": "tmx",
     "openFiles": [
-        "assets/map/tutorial.json"
+        "assets/map/tutorial.tmx"
     ],
     "project": "congoos.tiled-project",
     "recentFiles": [

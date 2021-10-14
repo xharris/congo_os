@@ -93,6 +93,12 @@ table.defaults = function (t,defaults)
   return t
 end
 
+table.push = function(t, ...)
+  for v = 1, select('#', ...) do 
+    table.insert(t, select(v, ...))
+  end
+end
+
 -- STRING 
 
 function string:starts(start)
@@ -135,6 +141,9 @@ end
 math.move = function(x, y, angle, distance) -- TODO: try swapping cos and sin
   return x + cos(angle) * distance,
          y + sin(angle) * distance
+end
+math.dist = function(x1, y1, x2, y2)
+  return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
 end
 
 -- ETC

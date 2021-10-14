@@ -8,6 +8,7 @@ engine.load = function()
   -- viewtest.load(e)
   local Person = require "src.person"
   local Level = require "src.level"
+  local NavMesh = require "src.navmesh"
 
   engine.Game.background_color = {color("gray", "900")}
 
@@ -22,5 +23,6 @@ engine.load = function()
     four = "four"
   }
 
-  Level.load("tutorial")
+  local level = Level.load("tutorial")
+  NavMesh.moveTo(level.person[1], level.appliance[1].transform.x, level.appliance[1].transform.y)
 end
