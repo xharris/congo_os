@@ -24,5 +24,6 @@ engine.load = function()
   }
 
   local level = Level.load("tutorial")
-  NavMesh.moveTo(level.person[1], level.appliance[1].transform.x, level.appliance[1].transform.y)
+  local path = NavMesh.moveTo(level.person[1], level.appliance[1].transform.x, level.appliance[1].transform.y)
+  print_r(path)
 end

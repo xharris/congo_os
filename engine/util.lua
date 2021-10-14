@@ -99,6 +99,14 @@ table.push = function(t, ...)
   end
 end
 
+-- https://gist.github.com/balaam/3122129
+table.reverse = function(t)
+	local len = #t
+	for i = len - 1, 1, -1 do
+		t[len] = table.remove(t, i)
+	end
+end
+
 -- STRING 
 
 function string:starts(start)
