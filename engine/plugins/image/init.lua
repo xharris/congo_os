@@ -1,4 +1,27 @@
-local image = {}
+local image = {
+  _VERSION        = 'xhh-image v1',
+  _URL            = '',
+  _DESCRIPTION    = [[
+    Component "image"
+    {
+      name (string) engine.Asset.image
+      speed (number) seconds per frame
+      frame (number) current frame
+      frames (number) total frames
+    }
+
+    newAnimation(
+      name string, 
+      opts {
+        frames (number)
+        cols (number)
+        rows (number)
+      }
+    )
+  ]]
+}
+
+engine.Component("image", { speed=1, frame=1, frames=1, _t=0 })
 
 local get_image = memoize(function(path)
   return love.graphics.newImage(
@@ -45,10 +68,17 @@ end
 image.animations = {}
 
 image.newAnimation = function(opts)
+  assert(opts.name, "newAnimation requires 'name'")
   image.animations[opts.name] = opts
 end
 
-engine.Component("image", { speed=1, frame=1, frames=1, _t=0 })
+image.getInfo = function(path)
+  local img = get_image(path)
+  return {
+    width = img:getWidth(),
+    height = img:getHeight()
+  }
+end
 
 local mon = monitor()
 engine.System("image")
@@ -64,11 +94,19 @@ engine.System("image")
     -- update animation
     if img._quads then 
       img._t = img._t + dt 
-      if img._t > img.speed then 
+      if img.speed ~= 0 and img._t > img.speed then 
         img._t = 0
-        img.frame = img.frame + 1
-      end 
-      if img.frame > img.frames then 
+        if img.speed < 0 then
+          -- backwards animation
+          img.frame = img.frame - 1
+        else
+          img.frame = img.frame + 1
+        end
+      end
+      -- loop
+      if img.frame < 1 then 
+        img.frame = #img.frames
+      elseif img.frame > img.frames then 
         img.frame = 1
       end
       img._quad = img._quads[img.frame]

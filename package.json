@@ -6,9 +6,9 @@
   "author": "xharris <xhh950@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "yarn run start:game",
-    "start:game": "~/Applications/love-*.AppImage .",
-    "start:ts": "~/Applications/love-*.AppImage game",
+    "start": "yarn run start:win",
+    "start:win": "..\\LOVE\\love-11.3-win64\\lovec.exe .",
+    "start:linux": "~/Applications/love-*.AppImage .",
     "transpile": "tstl"
   },
   "devDependencies": {

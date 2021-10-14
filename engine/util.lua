@@ -247,4 +247,3 @@ copy = function(orig, copies)
   end
   return t_copy
 end
-

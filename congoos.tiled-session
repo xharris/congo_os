@@ -1,0 +1,73 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "assets/map/tutorial.json",
+    "expandedProjectPaths": [
+        "assets",
+        "assets/map",
+        "."
+    ],
+    "fileStates": {
+        "": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "assets/map/tutorial.json": {
+            "scale": 1,
+            "selectedLayer": 4,
+            "viewCenter": {
+                "x": 147,
+                "y": 144
+            }
+        },
+        "assets/map/tutorial.json#furniture": {
+            "dynamicWrapping": true
+        },
+        "assets/map/tutorial.json#house_inside": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "assets/map/tutorial.tmx": {
+            "scale": 1,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 131.5,
+                "y": 182
+            }
+        },
+        "assets/map/tutorial.tmx#house_inside": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "tutorial.json": {
+            "scale": 1.5,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 160.66666666666669,
+                "y": 163.33333333333334
+            }
+        },
+        "tutorial.json#house_inside": {
+            "scaleInDock": 1
+        }
+    },
+    "last.exportedFilePath": "D:/Users/xhh95/Documents/PROJECTS/congo_os/assets/map",
+    "last.imagePath": "D:/Users/xhh95/Documents/PROJECTS/mechanic6-remake/assets/image",
+    "map.fixedSize": false,
+    "map.lastUsedExportFilter": "Lua files (*.lua)",
+    "map.lastUsedFormat": "tmx",
+    "openFiles": [
+        "assets/map/tutorial.json"
+    ],
+    "project": "congoos.tiled-project",
+    "recentFiles": [
+        "assets/map/tutorial.tmx",
+        "assets/map/tutorial.json",
+        "tutorial.json"
+    ],
+    "tileset.embedInMap": true,
+    "tileset.type": 1
+}

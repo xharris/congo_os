@@ -275,11 +275,18 @@ engine.Entity = class{
       self:_updateTransform()
     end 
     -- render in systems 
-    love.graphics.push()
+    love.graphics.push('all')
     love.graphics.applyTransform(self._local)
     -- color 
     if self.color then 
       love.graphics.setColor(self.color)
+    end
+    if engine.Debug.transform then 
+      love.graphics.push('all')
+      love.graphics.setColor(244/255, 67/255, 54/255, 1)
+      love.graphics.line(-3,-3,3,3)
+      love.graphics.line(-3,3,3,-3)
+      love.graphics.pop()
     end
     for _, sys in ipairs(self._renderers) do 
       sys:_draw(self)
@@ -617,6 +624,12 @@ engine.Plugin = function(name)
 end
 
 engine.Log = eng_require "log"
+
+engine.File = eng_require "file"
+
+engine.Debug = {
+  transform = false
+}
 
 engine.Game = callable{
   width = 0,

@@ -1,12 +1,10 @@
 local r = get_require(...)
 local shash = r("shash")
 
-local Map = {}
-
 engine.Component "Map"
 engine.Component "MapTileLayer" 
 
-local Map = class {
+Map = class {
   init = function(self)
     self.entity = engine.Entity()
     self.layers = {}
@@ -65,5 +63,7 @@ engine.System("MapTileLayer")
   :draw(function(ent)
     love.graphics.draw(ent.MapTileLayer._spritebatch) 
   end)
+
+Map.Tiled = r "tiled"
 
 return Map

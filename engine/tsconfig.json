@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext"],
+    "moduleResolution": "node",
+    "outDir": "game",
+    "baseUrl": ".",
+    "types": [
+      "love-typescript-definitions",
+      "typescript-to-lua/language-extensions",
+      "lua-types/5.1"
+    ]
+  },
+  "tstl": {
+    "noHeader": true,
+    "luaLibImport": "require",
+    "luaTarget": "JIT",
+    "noImplicitSelf": true,
+    "sourceMapTraceback": true
+  }
+}
