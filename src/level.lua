@@ -4,11 +4,13 @@ local map = engine.Plugin "map"
 local Appliance = require "src.appliance"
 local Person = require "src.person"
 local NavMesh = require "src.navmesh"
+local Pathfinding = require "src.pathfinding"
 
 M.load = function(name)
   local level = {
     appliance = {},
-    person = {}
+    person = {},
+    path = false
   }
 
   -- load lua map
@@ -45,9 +47,11 @@ M.load = function(name)
           for p, pt in ipairs(object.polygon) do 
             table.insert(points, { x=object.x + pt.x, y=object.y + pt.y })
           end
-          local ent = NavMesh.new{
-            points = points
-          }
+          -- local ent = NavMesh.new{
+          --   points = points
+          -- }
+          level.path = engine.Entity()
+            :add("path_map", { polygon = points })
         end
       end
     end

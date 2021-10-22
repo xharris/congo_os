@@ -60,6 +60,6 @@
   <object id="3" name="television" x="256" y="128" width="32" height="32"/>
  </objectgroup>
  <objectgroup color="#ff9800" id="4" name="person">
-  <object id="4" name="ceo" x="240" y="32"/>
+  <object id="4" name="ceo" x="208" y="48"/>
  </objectgroup>
 </map>

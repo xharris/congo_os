@@ -337,8 +337,8 @@ engine.Entity = class{
         for c = 1, select('#', ...) do 
           child = select(c, ...)
 
-          if self.id == child.id then return end 
-          if child.parent and child.parent.id == self.id then return end
+          if self.id == child.id then break end 
+          if child.parent and child.parent.id == self.id then break end
           if child.parent then 
             child.parent:remove(child)
           end
@@ -347,6 +347,7 @@ engine.Entity = class{
         end
       end
     end
+    return self
   end,
 
   remove = function(self, ...)
@@ -361,19 +362,21 @@ engine.Entity = class{
     else
       -- entity
       local child = select(1, ...)
-      if self.id == child.id then return end 
-
-      child.parent = nil
-      table.iterate(self.children, function(c)
-        return c.id == child.id
-      end)
+      if self.id ~= child.id then 
+        child.parent = nil
+        table.iterate(self.children, function(c)
+          return c.id == child.id
+        end)
+      end
     end
+    return self
   end,
 
   detach = function(self)
     if self.parent then 
       self.parent:remove(self)
     end
+    return self
   end,
 
   destroy = function(self)
