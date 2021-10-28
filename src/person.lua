@@ -7,15 +7,6 @@ engine.Component("script", { step=0, lines={}, line_count=0 })
 image.newAnimation{name="person_stand", frames={1}, rows=1, cols=3}
 image.newAnimation{name="person_walk", frames={2,3}, rows=1, cols=3, speed=10}
 
-Person.INFO = {
-  ceo = {
-    speed = 1000,
-    script = {
-      {  }
-    }
-  }
-}
-
 Person.new = function(opt)
   local ok, info = engine.File.loadJson(engine.Asset("people", opt.name..".json"))
   assert(ok, info)

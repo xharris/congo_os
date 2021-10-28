@@ -2,7 +2,7 @@
   "speed": 1000,
   "script": [
     { "type": "dialogue", "value": "hello there", "wait": "anykey" },
-    { "type": "dialogue", "value": "i think i'll check out the clock", "wait": "time" },
+    { "type": "dialogue", "value": "i think i'll check out the clock" },
     { "type": "appliance", "value": "clock", "wait": 1000 },
     { "type": "dialogue", "value": "very good" },
     { "type": "dialogue", "value": "now for the TV" },
