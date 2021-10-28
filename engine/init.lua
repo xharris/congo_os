@@ -47,11 +47,13 @@ local entities = {}
 
 engine.System = class{
   count = 0,
+  _update_tick = true, -- t/f, determines whether an object needs to update its transform
 
   init = function(self, ...)
     engine.System.count = engine.System.count + 1 
     self.id = engine.System.count
 
+    self.enabled = true
     self.callbacks = {}
     self.entities = {}
     self.components = {...}
@@ -99,9 +101,18 @@ engine.System = class{
     return self
   end,
 
+  _updateAll = function(dt)
+    engine.System._update_tick = not engine.System._update_tick
+    for _, sys in ipairs(systems) do 
+      sys:_update(dt)
+    end
+  end,
+
   _update = function(self, dt)
+    if not self.enabled then return nil end
     if self.callbacks.update then 
       for _, ent in ipairs(self.entities) do 
+        ent:_updateTransform()
         self.callbacks.update(ent, dt)
       end
     end
@@ -111,18 +122,21 @@ engine.System = class{
   end,
 
   _draw = function(self, ent)
+    if not self.enabled then return nil end
     if self.callbacks.draw then 
       self.callbacks.draw(ent)
     end
   end,
 
   _add = function(self, ent)
+    if not self.enabled then return nil end
     if self.callbacks.add then 
       self.callbacks.add(ent)
     end 
   end,
 
   _remove = function(self, ent)
+    if not self.enabled then return nil end
     if self.callbacks.add then 
       self.callbacks.remove(ent)
     end 
@@ -138,8 +152,10 @@ engine.System = class{
   end,
 
   _compatible = function(self, component_list)
+    local negated
     for _, v in ipairs(self.components) do 
-      if component_list[v] == nil then 
+      negated = v:starts('~')
+      if (negated and component_list[v]) or (not negated and component_list[v] == nil) then 
         return false 
       end
     end
@@ -231,6 +247,7 @@ engine.Entity = class{
     self.children = {}
     self.visible = true
     self.z = 0
+    self._update_tick = not engine.System._update_tick
 
     components = components or {}
     if not components.transform then 
@@ -247,46 +264,42 @@ engine.Entity = class{
     table.insert(entities, self)
   end,
 
-  _updateTransform = function(self, parent_transform)
-    -- update local
-    local t = self.transform
-    self._local:reset()
-      :setTransformation(
-        floor(t.x), floor(t.y), t.r, 
-        t.sx, t.sy, floor(t.ox), floor(t.oy),
-        t.kx, t.ky
-      )
-    -- update world
-    if parent_transform then 
-      self._world:reset()
-        :apply(parent_transform)
-        :apply(self._local)
-    else 
-      self._world:reset()
-        :apply(self._local)
-    end 
+  _updateTransform = function(self, force, parent_transform)
+    if not parent_transform and self.parent then 
+      self:_updateTransform(force, self.parent._world)
+      return
+    end
+    if force or self._update_tick ~= engine.System._update_tick then 
+      self._update_tick = engine.System._update_tick
+      -- update local
+      local t = self.transform
+      self._local:reset()
+        :setTransformation(
+          floor(t.x), floor(t.y), t.r, 
+          t.sx, t.sy, floor(t.ox), floor(t.oy),
+          t.kx, t.ky
+        )
+      -- update world
+      if parent_transform then 
+        self._world:reset()
+          :apply(parent_transform)
+          :apply(self._local)
+      else 
+        self._world:reset()
+          :apply(self._local)
+      end 
+    end
   end,
 
   _draw = function(self)
     -- transformations
-    if self.parent then 
-      self:_updateTransform(self.parent._world)
-    else 
-      self:_updateTransform()
-    end 
+    self:_updateTransform()
     -- render in systems 
     love.graphics.push('all')
     love.graphics.applyTransform(self._local)
     -- color 
     if self.color then 
       love.graphics.setColor(self.color)
-    end
-    if engine.Debug.transform then 
-      love.graphics.push('all')
-      love.graphics.setColor(244/255, 67/255, 54/255, 1)
-      love.graphics.line(-3,-3,3,3)
-      love.graphics.line(-3,3,3,-3)
-      love.graphics.pop()
     end
     for _, sys in ipairs(self._renderers) do 
       sys:_draw(self)
@@ -397,6 +410,16 @@ engine.Entity = class{
     end
   end,
 
+  toWorld = function(self, x, y)
+    self:_updateTransform(true)
+    return self._world:transformPoint(x, y)
+  end,
+
+  toLocal = function(self, x, y)
+    self:_updateTransform(true)
+    return self._local:transformPoint(x, y)
+  end,
+
   _addRenderSystem = function(self, system)
     table.insert(self._renderers, system)
     table.keySort(self._renderers, 'z', 0)
@@ -448,6 +471,21 @@ engine.Entity = class{
   }
 }
 
+-- debug
+local sys_debug
+sys_debug = engine.System("transform")
+  :order(100)
+  :draw(function(ent)
+    if engine.Debug.transform then 
+      love.graphics.push('all')
+      love.graphics.translate(ent.transform.ox, ent.transform.oy)
+      love.graphics.setColor(244/255, 67/255, 54/255, 1)
+      love.graphics.line(-3,-3,3,3)
+      love.graphics.line(-3,3,3,-3)
+      love.graphics.pop()
+    end
+  end)
+
 engine.Asset = callable {
   __call = function(t, category, file)
     return "assets/"..category.."/"..file
@@ -477,7 +515,7 @@ engine.System("view", "size")
   :update(function(ent, dt)
     local view, t, size = ent.view, ent.transform, ent.size
     if view.entity and view.entity.is_entity then 
-      view.x, view.y = view.entity._world:transformPoint(0,0)
+      view.x, view.y = view.entity:toWorld(0,0)
     end
 
     local ox, oy = size.w, size.h
@@ -701,6 +739,8 @@ love.load = function()
 end
 
 love.update = function(dt)
+  -- debug flags 
+  sys_debug.enabled = engine.Debug.transform -- or other flags
   -- check entities that may need to be moved around the systems
   if engine.Entity._need_to_check then 
     for id, ent in pairs(engine.Entity._check) do 
@@ -710,9 +750,7 @@ love.update = function(dt)
     engine.Entity._need_to_check = false 
   end
   -- update all systems
-  for _, sys in ipairs(systems) do 
-    sys:_update(dt)
-  end
+  engine.System._updateAll(dt)
 end
 
 love.draw = function()

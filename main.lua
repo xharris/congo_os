@@ -1,17 +1,21 @@
 color = engine.Plugin "color"
 engine.Plugin "effects"
 
--- engine.Debug.transform = true
+engine.Debug.transform = true
 
 
 engine.load = function()
-  local Person = require "src.person"
-  local Level = require "src.level"
-  local NavMesh = require "src.navmesh"
-  local Pathfinding = require "src.pathfinding"
+  Person = require "src.person"
+  Level = require "src.level"
+  NavMesh = require "src.navmesh"
+  Pathfinding = require "src.pathfinding"
+  require "src.movement"
 
   engine.Game.background_color = {color("gray", "900")}
 
   local level = Level.load("tutorial")
-  level.person[1]:add("path_follow", { map=level.path, target=level.appliance[1].transform })
+  
+  local vw_main = engine.View()
+  vw_main.view.x = level.person[1].transform.x 
+  vw_main.view.y = level.person[1].transform.y
 end

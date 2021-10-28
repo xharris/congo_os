@@ -146,15 +146,19 @@ end
 math.to1D = function(x, y, columns)
   return x + y * columns
 end
-math.move = function(x, y, angle, distance) -- TODO: try swapping cos and sin
-  return x + cos(angle) * distance,
-         y + sin(angle) * distance
+math.move = function(angle, distance) -- TODO: try swapping cos and sin
+  -- local len = math.sqrt(x * x + y * y)
+  return sin(angle) * distance,
+         cos(angle) * distance
 end
 math.dist = function(x1, y1, x2, y2)
   return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
 end
 math.angle = function(fromx, fromy, tox, toy)
-  return math.atan2(tox - fromx, toy - fromy)
+  return math.atan2(toy - fromy, tox - fromx)
+end
+math.sign = function(n)
+  return (n > 0 and 1) or (n == 0 and 0) or -1
 end
 
 -- ETC

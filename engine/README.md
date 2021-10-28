@@ -54,12 +54,15 @@ local MyStaticClass = callable {
 
 -- ecs
 
-engine.System("component1", "component1")
+local sys
+sys = engine.System("component1", "component2", "~component3") -- exclude entities with component3
   :order(2)
   :add(function(ent) ... end)
   :update(function(ent, dt) ... end)
   :draw(function(ent) ... end)
   :remove(function(ent) ... end)
+
+sys.enabled = false -- no callbacks will be called, entities will still be added/removed from the system
 
 engine.Component("Jump", { height=20 })
 engine.Component("Run", { max_speed=10 })
@@ -74,6 +77,7 @@ engine.Component("ExtraInfo")
 bob:add("ExtraInfo")
 bob:add("Shoot", { bullets=1 })
 
+local x, y = bob:toWorld(0, 0) -- converts local entity coordinates to world coordinates
 
 ---- built-in components
 

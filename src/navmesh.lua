@@ -1,3 +1,4 @@
+-- SCRAPPED for pathfinding.lua
 local M = {}
 
 local color = engine.Plugin "color"

@@ -6,8 +6,8 @@
     "activeFile": "assets/map/tutorial.tmx",
     "expandedProjectPaths": [
         "assets",
-        ".",
-        "assets/map"
+        "assets/map",
+        "."
     ],
     "fileStates": {
         "": {
@@ -32,10 +32,10 @@
         },
         "assets/map/tutorial.tmx": {
             "scale": 1.5,
-            "selectedLayer": 2,
+            "selectedLayer": 4,
             "viewCenter": {
-                "x": 149.66666666666666,
-                "y": 96.66666666666664
+                "x": 160.33333333333331,
+                "y": 172
             }
         },
         "assets/map/tutorial.tmx#house_inside": {

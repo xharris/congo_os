@@ -1,0 +1,14 @@
+{
+  "speed": 1000,
+  "script": [
+    { "type": "dialogue", "value": "hello there", "wait": "anykey" },
+    { "type": "dialogue", "value": "i think i'll check out the clock", "wait": "time" },
+    { "type": "appliance", "value": "clock", "wait": 1000 },
+    { "type": "dialogue", "value": "very good" },
+    { "type": "dialogue", "value": "now for the TV" },
+    { "type": "appliance", "value": "TV", "wait": 1000 },
+    { "type": "dialogue", "value": "nice job" },
+    { "type": "marker", "value": "spawn" },
+    { "type": "dialogue", "value": "and that's about it", "wait": "anykey" }
+  ]
+}

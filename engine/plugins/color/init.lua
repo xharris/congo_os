@@ -47,7 +47,7 @@ color = callable{
     contents, size = love.filesystem.read(json_file)
     if not contents then return end 
 
-    data = json.decode(contents)
+    data = engine.File.json.decode(contents)
     if not append then 
       color.library = {}
     end

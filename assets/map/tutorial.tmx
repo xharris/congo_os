@@ -52,7 +52,7 @@
  </layer>
  <objectgroup color="#2196f3" id="6" name="path">
   <object id="8" x="80" y="168">
-   <polygon points="0,0 -8,-120 72,-152 152,-120 136,-104 64,-128 8,-112 24,0 160,0 160,24 0,24"/>
+   <polygon points="-8,0 160,0 160,24 -8,24"/>
   </object>
  </objectgroup>
  <objectgroup color="#f44336" id="3" name="appliance">
@@ -60,6 +60,6 @@
   <object id="3" name="television" x="256" y="128" width="32" height="32"/>
  </objectgroup>
  <objectgroup color="#ff9800" id="4" name="person">
-  <object id="4" name="ceo" x="208" y="48"/>
+  <object id="4" name="ceo" x="160" y="168"/>
  </objectgroup>
 </map>

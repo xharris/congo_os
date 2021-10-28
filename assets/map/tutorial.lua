@@ -145,17 +145,10 @@ return {
           rotation = 0,
           visible = true,
           polygon = {
-            { x = 0, y = 0 },
-            { x = -8, y = -120 },
-            { x = 72, y = -152 },
-            { x = 152, y = -120 },
-            { x = 136, y = -104 },
-            { x = 64, y = -128 },
-            { x = 8, y = -112 },
-            { x = 24, y = 0 },
+            { x = -8, y = 0 },
             { x = 160, y = 0 },
             { x = 160, y = 24 },
-            { x = 0, y = 24 }
+            { x = -8, y = 24 }
           },
           properties = {}
         }
@@ -220,8 +213,8 @@ return {
           name = "ceo",
           type = "",
           shape = "rectangle",
-          x = 208,
-          y = 48,
+          x = 160,
+          y = 168,
           width = 0,
           height = 0,
           rotation = 0,
