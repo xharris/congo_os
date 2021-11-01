@@ -85,10 +85,14 @@ table.update = function (t, new_t, depth, hits)
   end
 end
 
-table.defaults = function (t,defaults)
+table.defaults = function (t,defaults,cache)
+  cache = cache or {}
   for k,v in pairs(defaults) do
       if type(t) == 'table' and t[k] == nil then t[k] = v
-      elseif type(v) == 'table' then table.defaults(t[k],defaults[k]) end
+      elseif type(v) == 'table' and not cache[v] then 
+        cache[v] = true
+        table.defaults(t[k],defaults[k],cache) 
+      end
   end
   return t
 end

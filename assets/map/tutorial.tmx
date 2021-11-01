@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="32" tileheight="32" infinite="1" nextlayerid="7" nextobjectid="11">
+<map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="32" tileheight="32" infinite="1" nextlayerid="8" nextobjectid="15">
  <editorsettings>
   <export target="tutorial.lua" format="lua"/>
  </editorsettings>
+ <properties>
+  <property name="camera" value="main"/>
+ </properties>
  <tileset firstgid="1" name="house_inside" tilewidth="32" tileheight="32" tilecount="224" columns="16">
   <image source="../image/house_inside.png" width="512" height="448"/>
  </tileset>
@@ -61,5 +64,10 @@
  </objectgroup>
  <objectgroup color="#ff9800" id="4" name="person">
   <object id="4" name="ceo" x="160" y="168"/>
+ </objectgroup>
+ <objectgroup color="#ffeb3b" id="7" name="camera" opacity="0.3">
+  <object id="11" name="main" x="0" y="0" width="320" height="320"/>
+  <object id="12" name="clock" x="0" y="96" width="96" height="96"/>
+  <object id="14" name="television" x="224" y="96" width="96" height="96"/>
  </objectgroup>
 </map>

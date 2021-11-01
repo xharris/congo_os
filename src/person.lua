@@ -12,11 +12,20 @@ Person.new = function(opt)
   assert(ok, info)
 
   return engine.Entity{
+    name = opt.name,
     transform = { x=opt.x, y=opt.y, ox=21/2, oy=34 },
     image = {name = opt.name..".png", animation = "person_stand"},
     path_follow = { speed=info.speed },
     script = { step = 0, lines = info.script, line_count = #info.script }
   }
+end
+
+Person.goToAppliance = function(person_name, appliance_name)
+  local person = Level.getPerson(person_name)
+  local appliance = Level.getAppliance(appliance_name)
+  local appx, appy = appliance:toWorld(0, 0)
+  person.path_follow.map = Level.getMap(ent.name)
+  person.path_follow.target = { x = appx, y = appy }
 end
 
 -- walk animation
@@ -29,7 +38,11 @@ engine.System("path_follow", "image")
       local current_step = path.steps[path.step]
       local next_step = path.steps[path.step + 1]
       if next_step then 
-        -- tform. next_step.x < 
+        if next_step.x < current_step.x then 
+          tform.sx = -1 
+        else 
+          tform.sx = 1
+        end
       end
     end
   end)
@@ -41,15 +54,6 @@ engine.System("path_follow", "image")
 engine.System("script", "path_follow")
   :update(function(ent, dt)
     local script, pfollow = ent.script, ent.path_follow 
-    -- local appliance = Level.getAppliance('clock')
-    -- local appx, appy = appliance:toWorld(0, 0)
-    -- pfollow.map = Level.getMap(ent.name)
-    -- pfollow.target = { x = appx, y = appy }
-  end)
-
-engine.System("name")
-  :draw(function(ent)
-    love.graphics.print(0, 0, ent.name)
   end)
 
 return Person

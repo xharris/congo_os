@@ -8,9 +8,11 @@ return {
   height = 100,
   tilewidth = 32,
   tileheight = 32,
-  nextlayerid = 7,
-  nextobjectid = 11,
-  properties = {},
+  nextlayerid = 8,
+  nextobjectid = 15,
+  properties = {
+    ["camera"] = "main"
+  },
   tilesets = {
     {
       name = "house_inside",
@@ -217,6 +219,60 @@ return {
           y = 168,
           width = 0,
           height = 0,
+          rotation = 0,
+          visible = true,
+          properties = {}
+        }
+      }
+    },
+    {
+      type = "objectgroup",
+      draworder = "topdown",
+      id = 7,
+      name = "camera",
+      visible = true,
+      opacity = 0.3,
+      offsetx = 0,
+      offsety = 0,
+      parallaxx = 1,
+      parallaxy = 1,
+      properties = {},
+      objects = {
+        {
+          id = 11,
+          name = "main",
+          type = "",
+          shape = "rectangle",
+          x = 0,
+          y = 0,
+          width = 320,
+          height = 320,
+          rotation = 0,
+          visible = true,
+          properties = {}
+        },
+        {
+          id = 12,
+          name = "clock",
+          type = "",
+          shape = "rectangle",
+          x = 0,
+          y = 96,
+          width = 96,
+          height = 96,
+          rotation = 0,
+          visible = true,
+          properties = {}
+        },
+        {
+          id = 14,
+          name = "television",
+          type = "",
+          shape = "rectangle",
+          x = 224,
+          y = 96,
+          width = 96,
+          height = 96,
           rotation = 0,
           visible = true,
           properties = {}

@@ -148,7 +148,7 @@ sys_path_map = engine.System("path_map")
     love.graphics.setColor(color('red'))
     love.graphics.setLineJoin('bevel')
     pmap.shape:draw('line')
-    love.graphics.rectangle('line', pmap.dims.x, pmap.dims.y, pmap.dims.w, pmap.dims.h)
+    -- love.graphics.rectangle('line', pmap.dims.x, pmap.dims.y, pmap.dims.w, pmap.dims.h)
   end)
 
 engine.System("path_follow")

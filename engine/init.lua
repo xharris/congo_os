@@ -41,9 +41,13 @@ json = eng_require("json")
 moonshine = eng_require("moonshine")
 eng_require("print_r")
 eng_require("util")
+local draw = eng_require "draw"
 
 local systems = {}
 local entities = {}
+
+engine.Log = eng_require "log"
+local log = engine.Log
 
 engine.System = class{
   count = 0,
@@ -124,7 +128,9 @@ engine.System = class{
   _draw = function(self, ent)
     if not self.enabled then return nil end
     if self.callbacks.draw then 
+      draw.push()
       self.callbacks.draw(ent)
+      draw.pop()
     end
   end,
 
@@ -137,7 +143,7 @@ engine.System = class{
 
   _remove = function(self, ent)
     if not self.enabled then return nil end
-    if self.callbacks.add then 
+    if self.callbacks.remove then 
       self.callbacks.remove(ent)
     end 
   end,
@@ -183,7 +189,7 @@ engine.System = class{
   end,
 
   _checkAll = function(entity)
-    for _, sys in ipairs(systems) do 
+    for _, sys in ipairs(systems) do
       sys:_check(entity)
     end
   end
@@ -256,16 +262,23 @@ engine.Entity = class{
     for k, v in pairs(components) do 
       engine.Component.use(self, k, v)
     end
-    engine.System._checkAll(self)
 
-    if engine.Entity.root then 
+    if engine.Entity.root and not self._is_root then 
       engine.Entity.root:add(self)
     end
+
+    engine.System._checkAll(self)
+
     table.insert(entities, self)
+  end,
+
+  _load = function()
+    engine.Entity.root = engine.Entity{ _is_root=true }
   end,
 
   _updateTransform = function(self, force, parent_transform)
     if not parent_transform and self.parent then 
+      self.parent:_updateTransform(force)
       self:_updateTransform(force, self.parent._world)
       return
     end
@@ -295,7 +308,6 @@ engine.Entity = class{
     -- transformations
     self:_updateTransform()
     -- render in systems 
-    love.graphics.push('all')
     love.graphics.applyTransform(self._local)
     -- color 
     if self.color then 
@@ -312,17 +324,22 @@ engine.Entity = class{
     for _, child in ipairs(self.children) do
       child:draw()
     end
-    love.graphics.pop()
   end,
 
   draw = function(self)
-    if not self.visible then return end 
-    if self.effect then 
-      self.effect(function()
+    if not self then
+      engine.Entity.root:draw()
+    else
+      if not self.visible then return end 
+      draw.push(true)
+      if self.effect then 
+        self.effect(function()
+          self:_draw()
+        end)
+      else 
         self:_draw()
-      end)
-    else 
-      self:_draw()
+      end
+      draw.pop()
     end
   end,
 
@@ -477,12 +494,12 @@ sys_debug = engine.System("transform")
   :order(100)
   :draw(function(ent)
     if engine.Debug.transform then 
-      love.graphics.push('all')
+      draw.push()
       love.graphics.translate(ent.transform.ox, ent.transform.oy)
       love.graphics.setColor(244/255, 67/255, 54/255, 1)
       love.graphics.line(-3,-3,3,3)
       love.graphics.line(-3,3,3,-3)
-      love.graphics.pop()
+      draw.pop()
     end
   end)
 
@@ -532,14 +549,15 @@ engine.System("view", "size")
   :draw(function(ent)
     local view, t, size = ent.view, ent.transform, ent.size
     engine.View._canvas:renderTo(function()
-      engine.Game.clear()
 
-      love.graphics.push()
+      draw.push()
+      engine.Game.clear()
       love.graphics.origin()
       love.graphics.applyTransform(view._transform)
 
-      engine.Entity.root:draw()
-      love.graphics.pop()
+      view.root:draw()
+
+      draw.pop()
     end)
     engine.View._quad:setViewport(
       0, 0, size.w, size.h,
@@ -549,26 +567,26 @@ engine.System("view", "size")
   end)
 
 engine.View = callable{
-  _root = nil,
+  root = nil,
   _canvas = nil,
   _quad = nil,
   views = {}, -- {name:entity}
   __call = function(t, name, opts)
-    name = name or "default"
+    name = name or "_"
     if type(name) == "table" then 
       opts = name 
-      name = "default"
+      name = "_"
     end
     local views = engine.View.views
     -- create a new view or update existing
     if not views[name] then 
       opts = opts or {}
       table.defaults(opts, {
-        view = { x=engine.Game.width/2, y=engine.Game.height/2 },
+        view = { root=engine.Entity.root, x=engine.Game.width/2, y=engine.Game.height/2 },
         size = { w=engine.Game.width, h=engine.Game.height }
       })
       views[name] = engine.Entity(opts)
-      engine.View._root:add(views[name])
+      engine.View.root:add(views[name])
     elseif opts then 
       views[name]:add(opts)
     end
@@ -581,16 +599,16 @@ engine.View = callable{
       engine.Game.width,engine.Game.height,
       engine.Game.width,engine.Game.height
     )
-    engine.View._root = engine.Entity()
-    engine.Entity.root:remove(engine.View._root)
-    engine.View("default")
+    engine.View.root = engine.Entity() -- .root
+    engine.View.root:detach()
+    engine.View()
   end,
   draw = function()
-    engine.View._root:draw()
+    engine.View.root:draw()
   end,
   getWorld = function(name, x, y)
     if not y then y, x, name = x, name, nil end 
-    local v = engine.View.views[name or 'default']
+    local v = engine.View.views[name or '_']
     if v and v.view then  
       return v.view._transform:inverseTransformPoint(v._local:inverseTransformPoint(x, y))
     end
@@ -599,7 +617,7 @@ engine.View = callable{
   -- TODO does this actually work?
   getLocal = function(name, x, y)
     if not y then y, x, name = x, name, nil end 
-    local v = engine.View.views[name or 'default']
+    local v = engine.View.views[name or '_']
     if v and v.view then  
       return v.view._transform:transformPoint(v._local:transformPoint(x, y))
     end
@@ -664,9 +682,9 @@ engine.Plugin = function(name)
   return eng_require("plugins."..name)
 end
 
-engine.Log = eng_require "log"
-
 engine.File = eng_require "file"
+
+engine.Draw = draw
 
 engine.Debug = {
   transform = false
@@ -682,6 +700,7 @@ engine.Game = callable{
   scale = 1,
 
   _load = function()
+    draw.init()
     engine.Game.width = love.graphics.getWidth()
     engine.Game.height = love.graphics.getHeight()
 
@@ -693,9 +712,9 @@ engine.Game = callable{
     engine.Component("transform", { x=0, y=0, ox=0, oy=0, r=0, sx=1, sy=1, kx=0, ky=0 })
     engine.Component("size", { w=0, h=0 })
     
-    engine.Entity.root = engine.Entity()
-    engine._canvas = love.graphics.newCanvas()
+    engine.Entity._load()
     engine.View._load()
+    engine._canvas = love.graphics.newCanvas()
     love.graphics.setDefaultFilter("nearest", "nearest", 1)
   end,
 

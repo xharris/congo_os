@@ -1,69 +1,68 @@
+local M = {}
+
 local r = get_require(...)
 local shash = r("shash")
 
-engine.Component "Map"
-engine.Component "MapTileLayer" 
+engine.Component("map", { tile_layer = {}, layers = {}, shash=false })
+engine.Component "map_tile_layer" 
 
-Map = class {
-  init = function(self)
-    self.entity = engine.Entity()
-    self.layers = {}
-    self.shash = shash.new()
-  end,
-
-  _getSpritebatch = function(self, layer, image)
-    layer = layer or "_"
-    if not self.layers[layer] then 
-      self.layers[layer] = {}
-    end
-    if not self.layers[layer][image] then 
-      self.layers[layer][image] = engine.Entity{ MapTileLayer={ image=image } }
-      self.entity:add(self.layers[layer][image])
-    end
-    return self.layers[layer][image].MapTileLayer._spritebatch, layer
-  end,
-
-  addTile = function(self, image, x, y, tx, ty, tw, th, _layer)
-    local sb, layer = self:_getSpritebatch(_layer, image)
-    self.shash:add({
-      id = sb:add(engine.Asset.quad(image, tx, ty, tw, th), x, y),
-      image = image, 
-      layer = layer
-    }, x, y, tw, th)    
-  end,
-
-  removeTile = function(self, x, y, w, h, layer, image)
-    w = w or 1
-    h = h or 1
-    self.shash:each(x, y, w, h, function(obj)
-      if (not image or obj.image == image) and (not layer or obj.layer == layer) then 
-        self.shash:remove(obj)
-        local sb = self:_getSpritebatch(obj.layer, obj.image)
-        sb:set(obj.id, 0, 0, 0, 0, 0)
-      end
-    end)
-  end,
-
-  addEntity = function(self, ent)
-    self.entity:add(ent)
+local getSpritebatch = function(ent, layer, image)
+  local map = ent.map
+  layer = layer or "_"
+  if not map.layers[layer] then 
+    map.layers[layer] = {}
   end
-}
-
-Map.load = function(name)
-  local map = Map()
-  -- load ...
-  return map 
+  if not map.layers[layer][image] then 
+    map.layers[layer][image] = engine.Entity{ map_tile_layer={ image=image } }
+    ent:add(map.layers[layer][image])
+  end
+  return map.layers[layer][image].map_tile_layer._spritebatch, layer
 end
 
-engine.System("MapTileLayer")
+
+M.new = function()
+  return engine.Entity{
+    map = { 
+      shash = shash.new()
+    }
+  }
+end
+
+M.addTile = function(ent, image, x, y, tx, ty, tw, th, _layer)
+  local map = ent.map
+  local sb, layer = getSpritebatch(ent, _layer, image)
+  map.shash:add({
+    id = sb:add(engine.Asset.quad(image, tx, ty, tw, th), x, y),
+    image = image, 
+    layer = layer
+  }, x, y, tw, th)    
+end
+
+M.removeTile = function(ent, x, y, w, h, layer, image)
+  local map = ent.map
+  w = w or 1
+  h = h or 1
+  map.shash:each(x, y, w, h, function(obj)
+    if (not image or obj.image == image) and (not layer or obj.layer == layer) then 
+      map.shash:remove(obj)
+      local sb = getSpritebatch(ent, obj.layer, obj.image)
+      sb:set(obj.id, 0, 0, 0, 0, 0)
+    end
+  end)
+end
+
+M.addEntity = function(ent, added)
+  ent:add(added)
+end
+
+engine.System("map_tile_layer")
   :add(function(ent)
-    local mtl = ent.MapTileLayer
-    mtl._spritebatch = love.graphics.newSpriteBatch(engine.Asset.image(mtl.image))
+    ent.map_tile_layer._spritebatch = love.graphics.newSpriteBatch(engine.Asset.image(ent.map_tile_layer.image))
   end)
   :draw(function(ent)
-    love.graphics.draw(ent.MapTileLayer._spritebatch) 
+    love.graphics.draw(ent.map_tile_layer._spritebatch) 
   end)
 
-Map.Tiled = r "tiled"
+M.Tiled = r "tiled"
 
-return Map
+return M

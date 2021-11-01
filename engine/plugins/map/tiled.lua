@@ -5,6 +5,7 @@ local fs = engine.File
 tiled.load = function(path)
   data = require(path)
   local map = {}
+  map.properties = data.properties
   map.tilesets = data.tilesets
   map.layers = {}
   local tileset
